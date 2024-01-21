@@ -36,7 +36,7 @@ public class FileConvert : IFileConvert
 
     public void Read(string root)
     {
-        this.root = root;
+        this.root = root + "/";
         foreach (var file in files)
         {
             Init(file);
@@ -59,65 +59,74 @@ public class FileConvert : IFileConvert
     {
         string editPath = root + edit + file + ".csv";
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-        using var reader = new StreamReader(editPath, Encoding.GetEncoding(950));
-        reader.ReadLine();
-        string note = string.Empty;
-        while (reader.Peek() != -1)
+        try
         {
-            var line = reader.ReadLine()!;
-            var arr = line.Split(',');
-            var model = new KitModel(
-                Id: Convert.ToInt32(arr[0]),
-                Sid: Convert.ToInt32(arr[1]),
-                Text: arr[2],
-                Type: (KitType)Convert.ToInt32(arr[3]),
-                OptText: arr[4],
-                OptValue: arr[5],
-                Annotation: arr[6],
-                Note: arr[7]
-            );
-            var column = "Q" + model.Id + "-" + model.Sid;
-            if (!string.IsNullOrEmpty(note) && !string.Equals(note, column))
+            using var reader = new StreamReader(editPath, Encoding.GetEncoding(950));
+            reader.ReadLine();
+            string note = string.Empty;
+            while (reader.Peek() != -1)
             {
-                AddColumn(note + "-a", typeof(string));
-                note = string.Empty;
+                var line = reader.ReadLine()!;
+                var arr = line.Split(',');
+                var model = new KitModel(
+                    Id: Convert.ToInt32(arr[0]),
+                    Sid: Convert.ToInt32(arr[1]),
+                    Text: arr[2],
+                    Type: (KitType)Convert.ToInt32(arr[3]),
+                    OptText: arr[4],
+                    OptValue: arr[5],
+                    Annotation: arr[6],
+                    Note: arr[7]
+                );
+                var column = "Q" + model.Id + "-" + model.Sid;
+                if (!string.IsNullOrEmpty(note) && !string.Equals(note, column))
+                {
+                    AddColumn(note + "-a", typeof(string));
+                    note = string.Empty;
+                }
+
+                switch (model.Type)
+                {
+                    case KitType.Single:
+                        AddColumn(column, typeof(int));
+                        break;
+
+                    case KitType.Multi:
+                        AddColumn(column, typeof(int), multi: true);
+                        break;
+
+                    case KitType.Number:
+                        AddColumn(column, typeof(int));
+                        break;
+
+                    case KitType.String:
+                        AddColumn(column, typeof(string));
+                        break;
+
+                    case KitType.Time:
+                        AddColumn(column, typeof(string));
+                        break;
+
+                    case KitType.Location:
+                        AddColumn(column + "-city", typeof(string));
+                        AddColumn(column + "-town", typeof(string));
+                        break;
+
+                    case KitType.Set:
+                    case KitType.NextPage:
+                        break;
+                    default:
+                        throw new InvalidOperationException();
+                }
+                if (model.Note == "1") note = column;
             }
-
-            switch (model.Type)
-            {
-                case KitType.Single:
-                    AddColumn(column, typeof(int));
-                    break;
-
-                case KitType.Multi:
-                    AddColumn(column, typeof(int), multi: true);
-                    break;
-
-                case KitType.Number:
-                    AddColumn(column, typeof(int));
-                    break;
-
-                case KitType.String:
-                    AddColumn(column, typeof(string));
-                    break;
-
-                case KitType.Time:
-                    AddColumn(column, typeof(string));
-                    break;
-
-                case KitType.Location:
-                    AddColumn(column + "-city", typeof(string));
-                    AddColumn(column + "-town", typeof(string));
-                    break;
-
-                case KitType.Set:
-                case KitType.NextPage:
-                    break;
-                default:
-                    throw new InvalidOperationException();
-            }
-            if (model.Note == "1") note = column;
         }
+        catch(Exception ex)
+        {
+            throw;
+        }
+        
+        
 
         columnOrd = table.Columns.Cast<DataColumn>().ToDictionary(col => col.ColumnName, col => col.Ordinal);
     }
@@ -199,8 +208,9 @@ public class FileConvert : IFileConvert
     public void Reset()
     {
         root = string.Empty;
-        table.Dispose();
-        columns.Clear();
+        Repository.Clear();
+        table?.Dispose();
+        columns?.Clear();
     }
 
     private void AddColumn(string column, Type type, bool multi = false)

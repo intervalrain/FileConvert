@@ -23,4 +23,9 @@ public class InMemoryRepository : IRepository
             memory.Add(id, content);
         }
     }
+
+    public void Clear()
+    {
+        memory.Clear();
+    }
 }

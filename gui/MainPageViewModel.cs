@@ -1,8 +1,8 @@
-﻿using System.Threading;
+﻿using CommunityToolkit.Maui.Storage;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Eva;
-using gui.Interfaces;
 
 namespace gui;
 
@@ -21,24 +21,29 @@ public partial class MainPageViewModel : ObservableObject
     void New()
     {
         fileConvertService.New();
+        Application.Current?.MainPage.DisplayAlert("Fileds Clear!", "The files are cleared.", "OK");
     }
 
     [RelayCommand]
     async Task Open(CancellationToken cancellationToken)
     {
-        var root = await folderPicker.PickFolder();
+        var result  = await folderPicker.PickAsync(cancellationToken);
+        result.EnsureSuccess();
+        var root = result.Folder.Path;
         
         if (root is not null)
         {
             fileConvertService.Open(root);
         }
+
+        Application.Current?.MainPage.DisplayAlert("Task Completed!", "The files are completed. Please click 'save'.", "OK");
     }
 
     [RelayCommand]
     async Task Save(CancellationToken cancellationToken)
     {
-        string root = await folderPicker.PickFolder();
         fileConvertService.Save();
+        Application.Current?.MainPage.DisplayAlert("Files Saved", "The files are saved.", "OK");
     }
 
     [RelayCommand]
@@ -54,9 +59,10 @@ public partial class MainPageViewModel : ObservableObject
     }
 
     [RelayCommand]
-    Task About()
+    void About()
     {
-        return Launcher.OpenAsync("https://intervalrain@gmail.com/");
+        var about = new About();
+        Application.Current?.MainPage?.ShowPopup(about);
     }
 
     [RelayCommand]

@@ -12,7 +12,7 @@ public partial class App : Application
     protected override Window CreateWindow(IActivationState activationState)
     {
 		var window = base.CreateWindow(activationState);
-
+		window.Title = "KIT File Converter";
 		const int width = 480;
 		const int height = 640;
 
